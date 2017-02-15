@@ -737,3 +737,69 @@ int mdbx_dbi_open_ex(MDB_txn *txn, const char *name, unsigned flags,
 	}
 	return rc;
 }
+
+static const char* mdbx_page_type(MDB_page *mp)
+{
+	switch (mp->mp_flags) {
+	case P_BRANCH:
+		return "branch";
+	case P_LEAF:
+		return "leaf";
+	case P_LEAF|P_SUBP:
+		return "dupsort-subleaf";
+	case P_LEAF|P_LEAF2:
+		return "dupfixed-leaf";
+	case P_LEAF|P_LEAF2|P_SUBP:
+		return "dupsort-dupfixed-subleaf";
+	case P_META:
+		return "meta";
+	case P_OVERFLOW:
+		return  "overflow";
+	default:
+		return "???";
+	}
+}
+
+static const char* mdbx_node_type(MDB_node *node)
+{
+	switch(node->mn_flags) {
+	case F_BIGDATA:
+		return "bigdata";
+	case F_SUBDATA:
+		return "sub-db";
+	case F_DUPDATA:
+		return "dupdata";
+	case 0:
+		return "usual";
+	default:
+		return "???";
+	}
+}
+
+void mdbx_cursor_dump(MDB_cursor *mc, const char* state)
+{
+	printf(">>> cursor %p (state=%s)\n", mc, state);
+	printf("\tsnum = %u\n", mc->mc_snum);
+	printf("\ttop = %u\n", mc->mc_top);
+
+	for(unsigned i = 0; i < mc->mc_snum; ++i) {
+		MDB_page *mp = mc->mc_pg[i];
+		unsigned nkeys = NUMKEYS(mp);
+		unsigned indice = mc->mc_ki[i];
+		printf("\t[%u] nk = %u, ki %u, page: %s (0x%04x), ",
+			i, nkeys, indice, mdbx_page_type(mp), mp->mp_flags);
+		if (IS_LEAF2(mp)) {
+			/* LEAF2 pages have no mp_ptrs[] or node headers */
+			printf("leaf-2 page\n");
+			continue;
+		}
+		if (indice >= nkeys) {
+			printf("end-of-keys\n");
+			continue;
+		}
+		MDB_node *node = NODEPTR(mp, indice);
+		printf("node: %s (0x%04x)\n", mdbx_node_type(node), node->mn_flags);
+	}
+	printf("<<< cursor-dump\n");
+	fflush(NULL);
+}

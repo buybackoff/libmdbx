@@ -207,6 +207,8 @@ typedef void MDBX_debug_func(int type, const char *function, int line,
 
 int mdbx_setup_debug(int flags, MDBX_debug_func* logger, long edge_txn);
 
+void mdbx_cursor_dump(MDB_cursor *mc, const char* state);
+
 typedef int MDBX_pgvisitor_func(size_t pgno, unsigned pgnumber, void* ctx,
 					const char* dbi, const char *type, int nentries,
 					int payload_bytes, int header_bytes, int unused_bytes);
