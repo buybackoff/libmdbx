@@ -6123,6 +6123,9 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	MDB_node	*leaf;
 	int rc;
 
+	if ((mc->mc_flags & C_DEL) && op == MDB_PREV_DUP)
+		return MDB_NOTFOUND;
+
 	if (!(mc->mc_flags & C_INITIALIZED)) {
 		rc = mdb_cursor_last(mc, key, data);
 		if (unlikely(rc))
@@ -6507,8 +6510,13 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 		MDB_page *mp = mc->mc_pg[mc->mc_top];
 		int nkeys = NUMKEYS(mp);
 		if (!nkeys || mc->mc_ki[mc->mc_top] >= nkeys) {
-			mc->mc_ki[mc->mc_top] = nkeys;
-			return MDB_NOTFOUND;
+			rc = mdb_cursor_sibling(mc, 1);
+			if (rc == MDB_SUCCESS) {
+				mp = mc->mc_pg[mc->mc_top];
+				nkeys = NUMKEYS(mp);
+			} else if (rc == MDB_NOTFOUND && (mc->mc_flags & C_SUB) && nkeys > 0) {
+				mc->mc_ki[mc->mc_top] = nkeys - 1;
+			} else return rc;
 		}
 
 		rc = MDB_SUCCESS;
