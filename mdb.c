@@ -6671,9 +6671,7 @@ fetchm:
 		break;
 	}
 
-	if (mc->mc_flags & C_DEL)
-		mc->mc_flags ^= C_DEL;
-
+	mc->mc_flags &= ~C_DEL;
 	return rc;
 }
 
@@ -6839,8 +6837,7 @@ mdb_cursor_put(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 			return rc;
 	}
 
-	if (mc->mc_flags & C_DEL)
-		mc->mc_flags ^= C_DEL;
+	mc->mc_flags &= ~C_DEL;
 
 	/* Cursor is positioned, check for room in the dirty list */
 	if (!nospill) {
